@@ -8,6 +8,9 @@ Usage: app [options]
 Options:
 
   -h, --help           output usage information
+
   -V, --version        output the version number
-  -p, --page <a>..<b>  page number, like -p 5, -p 5..10
-  -o, --output <path>  output dir
+
+  -p, --page &lt;a>..&lt;b>  page number, like -p 5, -p 5..10
+  
+  -o, --output &lt;path>  output dir
