@@ -1,5 +1,6 @@
 var _ = require('underscore'),
 	async = require('async'),
+	clc = require('cli-color'),
 	path = require('path'),
 	program = require('commander'),
 	fs = require('fs'),
@@ -33,36 +34,37 @@ var getUrl = function (page) {
 
 // img {Object}, src, no, id, page
 var downloadByImg = function (img, cb) {
-	console.log(img.no + ' ' + img.src);
+	console.info(img.no + ' ' + img.src);
 
 	try {
 		var s = request(img.src).on('end', cb).on('error', function () {cb()});
 		var ext = img.src.substr(img.src.lastIndexOf('.'));
 		ext = /^.\w+$/.test(ext) ? ext : '.jpg';
 		s.pipe(fs.createWriteStream(path.join(program.output || __dirname, img.page + '-' + img.id + ext)));
-		console.log(path.join(program.output || __dirname, img.page + '-' + img.id + ext));
 	} catch (e) {
 		cb(e);
 	}
 };
 
 var downloadByPage = function (page, cb) {
-	console.log('page ' + page);
+	console.info(clc.green('page ' + page));
 
-	request(getUrl(page), function (err, res, data) {
+	request({
+		url: getUrl(page),
+		headers: {
+			'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.132 Safari/537.36'
+		}
+	}, function (err, res, data) {
 		data = data.replace(/(\n|\r\n)/g, '');
 		var matches = data.match(/<li id="comment-\d+">.+?<\/li>/g);
 		var imgs = _.compact(_.map(matches, getImgSrc));
 		_.map(imgs, function (img) {
 			return _.extend(img, {page: page})
 		});
-
-		
+	
 		async.eachLimit(imgs, 10, downloadByImg, cb);
 	});
 };
-
-console.log(program.page, program.output);
 
 if (_.every(program.page)) {
 	try {
@@ -74,9 +76,11 @@ if (_.every(program.page)) {
 			pages = _.range(program.page[0], program.page[1] + 1);
 		}
 
-		async.eachSeries(pages, downloadByPage, function (err) {console.log(err)});
+		async.eachSeries(pages, downloadByPage, function (err) {
+			err && console.error(clc.red(err));
+		});
 	} catch (e) {
-		console.log(e);
+		console.error(clc.red(e));
 	}
 } else {
 	console.log('bad arguments');
